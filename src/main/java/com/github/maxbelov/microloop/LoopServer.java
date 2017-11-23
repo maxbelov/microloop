@@ -10,11 +10,15 @@ import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
 
 public class LoopServer {
     private final InetSocketAddress bindAddress;
     private Selector selector;
+    private Map<SocketChannel, Message> messageData = new HashMap<>();
+    private int counter;
 
     public LoopServer(String host, int port) {
         this.bindAddress = new InetSocketAddress(host, port);
@@ -69,11 +73,34 @@ public class LoopServer {
             System.out.println("Connection closed by client: " + remoteAddr);
             channel.close();
             key.cancel();
+            dispatchMessage(messageData.remove(channel)); //todo: can be not full
             return;
         }
 
         channel.read(buffer);
-        byte[] data = Arrays.copyOf(buffer.array(), bytesRead);
+        byte[] data = Arrays.copyOf(buffer.array(), bytesRead); // why to copy?
+        dispatchData(channel, data);
         System.out.println("Get data " + new String(data));
+    }
+
+    private void dispatchData(SocketChannel channel, byte[] data) {
+        if (!messageData.containsKey(channel)) {
+            messageData.put(channel, new Message());
+        }
+        Message message = messageData.get(channel);
+        byte[] remainingData = data;
+        do {
+            remainingData = message.addData(remainingData);
+            if (message.isFull()) {
+                messageData.remove(channel);
+                dispatchMessage(message); // todo: call is synchronous
+                message = new Message();
+                messageData.put(channel, message);
+            }
+        } while (remainingData.length > 0);
+    }
+
+    private void dispatchMessage(Message message) {
+        System.out.println("Got message " + ++counter +": " + message);
     }
 }
