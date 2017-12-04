@@ -13,14 +13,17 @@ public class Main {
     public static void main(String[] args) throws InterruptedException {
         System.out.println("Starting Loop!");
         ExecutorService executor = Executors.newCachedThreadPool();
+
+        LoopServer loopServer = new LoopServer(HOSTNAME, PORT, () -> new FixedSizeMessageHandler(4) {
+            @Override
+            protected void handleMessage(byte[] message) {
+                System.out.printf("Message: %s\n", new String(message));
+            }
+        });
+
         executor.submit(() -> {
             try {
-                new LoopServer(HOSTNAME, PORT, new FixedSizeMessageHandler(4) {
-                    @Override
-                    protected void handleMessage(byte[] message) {
-                        System.out.printf("Message: %s\n", new String(message));
-                    }
-                }).start();
+                loopServer.start();
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -35,8 +38,10 @@ public class Main {
                 e.printStackTrace();
             }
         };
+
         executor.submit(runnable);
         executor.submit(runnable);
         executor.shutdown();
+
     }
 }

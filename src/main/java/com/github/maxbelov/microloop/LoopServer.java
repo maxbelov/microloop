@@ -11,16 +11,17 @@ import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.util.Arrays;
 import java.util.Iterator;
+import java.util.function.Supplier;
 
 public class LoopServer {
     private static final int CHANNEL_BUFFER_SIZE = 1024;
     private final InetSocketAddress bindAddress;
-    private final ChannelHandler channelHandler;
+    private final Supplier<? extends ChannelHandler> handlerSupplier;
     private Selector selector;
 
-    public LoopServer(String host, int port, ChannelHandler channelHandler) {
+    public LoopServer(String host, int port, Supplier<? extends ChannelHandler> handlerSupplier) {
         this.bindAddress = new InetSocketAddress(host, port);
-        this.channelHandler = channelHandler;
+        this.handlerSupplier = handlerSupplier;
     }
 
     public void start() throws IOException {
@@ -56,7 +57,7 @@ public class LoopServer {
         SocketAddress socket = channel.getRemoteAddress();
         System.out.println("Connected to " + socket);
 
-        channel.register(selector, SelectionKey.OP_READ);
+        channel.register(selector, SelectionKey.OP_READ, handlerSupplier.get());
     }
 
 
@@ -80,6 +81,7 @@ public class LoopServer {
         byte[] data = Arrays.copyOf(buffer.array(), bytesRead);
 
         System.out.println(String.format("got %d bytes", data.length));
-        channelHandler.onData(data);
+        ChannelHandler handler = (ChannelHandler) key.attachment();
+        handler.onData(data);
     }
 }
