@@ -10,18 +10,17 @@ import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.Iterator;
-import java.util.Map;
 
 public class LoopServer {
+    private static final int CHANNEL_BUFFER_SIZE = 1024;
     private final InetSocketAddress bindAddress;
+    private final ChannelHandler channelHandler;
     private Selector selector;
-    private Map<SocketChannel, Message> messageData = new HashMap<>();
-    private int counter;
 
-    public LoopServer(String host, int port) {
+    public LoopServer(String host, int port, ChannelHandler channelHandler) {
         this.bindAddress = new InetSocketAddress(host, port);
+        this.channelHandler = channelHandler;
     }
 
     public void start() throws IOException {
@@ -63,7 +62,7 @@ public class LoopServer {
 
     private void read(SelectionKey key) throws IOException {
         SocketChannel channel = (SocketChannel) key.channel();
-        ByteBuffer buffer = ByteBuffer.allocate(1024);
+        ByteBuffer buffer = ByteBuffer.allocate(CHANNEL_BUFFER_SIZE);
 
         int bytesRead = channel.read(buffer);
 
@@ -73,34 +72,14 @@ public class LoopServer {
             System.out.println("Connection closed by client: " + remoteAddr);
             channel.close();
             key.cancel();
-            dispatchMessage(messageData.remove(channel)); //todo: can be not full
             return;
         }
 
         channel.read(buffer);
-        byte[] data = Arrays.copyOf(buffer.array(), bytesRead); // why to copy?
-        dispatchData(channel, data);
-        System.out.println("Get data " + new String(data));
-    }
 
-    private void dispatchData(SocketChannel channel, byte[] data) {
-        if (!messageData.containsKey(channel)) {
-            messageData.put(channel, new Message());
-        }
-        Message message = messageData.get(channel);
-        byte[] remainingData = data;
-        do {
-            remainingData = message.addData(remainingData);
-            if (message.isFull()) {
-                messageData.remove(channel);
-                dispatchMessage(message); // todo: call is synchronous
-                message = new Message();
-                messageData.put(channel, message);
-            }
-        } while (remainingData.length > 0);
-    }
+        byte[] data = Arrays.copyOf(buffer.array(), bytesRead);
 
-    private void dispatchMessage(Message message) {
-        System.out.println("Got message " + ++counter +": " + message);
+        System.out.println(String.format("got %d bytes", data.length));
+        channelHandler.onData(data);
     }
 }

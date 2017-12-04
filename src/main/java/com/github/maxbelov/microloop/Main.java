@@ -15,7 +15,12 @@ public class Main {
         ExecutorService executor = Executors.newCachedThreadPool();
         executor.submit(() -> {
             try {
-                new LoopServer(HOSTNAME, PORT).start();
+                new LoopServer(HOSTNAME, PORT, new FixedSizeMessageHandler(4) {
+                    @Override
+                    protected void handleMessage(byte[] message) {
+                        System.out.printf("Message: %s\n", new String(message));
+                    }
+                }).start();
             } catch (IOException e) {
                 e.printStackTrace();
             }
