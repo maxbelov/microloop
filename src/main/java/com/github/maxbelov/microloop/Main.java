@@ -16,21 +16,7 @@ public class Main {
         System.out.println("Starting Loop!");
         ExecutorService executor = Executors.newCachedThreadPool();
 
-        LoopServer loopServer = new LoopServer(HOSTNAME, PORT, () -> new FixedSizeMessageHandler(10) {
-            @Override
-            protected void handleMessage(SocketChannel socketChannel, byte[] message) {
-                try {
-                    System.out.printf("Server received: %s\n", new String(message));
-                    ByteBuffer buffer = ByteBuffer.wrap(message);
-
-                    while (buffer.hasRemaining()) {
-                        socketChannel.write(buffer);
-                    }
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
-                }
-            }
-        });
+        LoopServer loopServer = new LoopServer(HOSTNAME, PORT, () -> new FixedSizeMessageHandler(10));
 
         executor.submit(() -> {
             try {

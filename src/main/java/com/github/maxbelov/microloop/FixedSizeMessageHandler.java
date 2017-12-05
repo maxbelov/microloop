@@ -1,8 +1,6 @@
 package com.github.maxbelov.microloop;
 
-import java.nio.channels.SocketChannel;
-
-public abstract class FixedSizeMessageHandler extends ChannelHandler {
+public class FixedSizeMessageHandler extends MessageHandler {
     private final int messageSize;
     private byte[] data;
     private int lastIndex = 0;
@@ -17,7 +15,8 @@ public abstract class FixedSizeMessageHandler extends ChannelHandler {
 
 
     @Override
-    public void onData(SocketChannel socketChannel, final byte[] dataChunk) {
+    public void onData(ChannelContext ctx, Object message) {
+        byte[] dataChunk = (byte[]) message;
         if (dataChunk == null) {
             throw new NullPointerException("Data chunk must not be null!");
         }
@@ -32,7 +31,7 @@ public abstract class FixedSizeMessageHandler extends ChannelHandler {
 
             final boolean messageComplete = lastIndex >= messageSize;
             if (messageComplete) {
-                handleMessage(socketChannel, data);
+                handleMessage(ctx, data);
                 data = new byte[messageSize];
                 lastIndex = 0;
             }
@@ -41,5 +40,8 @@ public abstract class FixedSizeMessageHandler extends ChannelHandler {
         }
     }
 
-    protected abstract void handleMessage(SocketChannel socketChannel, byte[] message);
+    private void handleMessage(ChannelContext ctx, byte[] message) {
+        System.out.printf("Server received: %s\n", new String(message));
+        ctx.write(message);
+    }
 }

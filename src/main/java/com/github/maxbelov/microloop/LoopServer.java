@@ -16,10 +16,10 @@ import java.util.function.Supplier;
 public class LoopServer {
     private static final int CHANNEL_BUFFER_SIZE = 1024;
     private final InetSocketAddress bindAddress;
-    private final Supplier<? extends ChannelHandler> handlerSupplier;
+    private final Supplier<? extends MessageHandler> handlerSupplier;
     private Selector selector;
 
-    public LoopServer(String host, int port, Supplier<? extends ChannelHandler> handlerSupplier) {
+    public LoopServer(String host, int port, Supplier<? extends MessageHandler> handlerSupplier) {
         this.bindAddress = new InetSocketAddress(host, port);
         this.handlerSupplier = handlerSupplier;
     }
@@ -57,11 +57,11 @@ public class LoopServer {
         SocketAddress socket = channel.getRemoteAddress();
         System.out.println("Connected to " + socket);
 
-        ChannelHandler channelHandler = handlerSupplier.get();
-        channelHandler.onActive(channel);
-        channel.register(selector, SelectionKey.OP_READ, channelHandler);
+        MessageHandler channelHandler = handlerSupplier.get(); // todo: rewrite to initializer
+        ChannelContext channelContext = new ChannelContext(channel, channelHandler);
+        channel.register(selector, SelectionKey.OP_READ, channelContext);
+        channelContext.channelActive(); // todo: remove from accept thread
     }
-
 
     private void read(SelectionKey key) throws IOException {
         SocketChannel channel = (SocketChannel) key.channel();
@@ -83,7 +83,7 @@ public class LoopServer {
         byte[] data = Arrays.copyOf(buffer.array(), bytesRead);
 
         System.out.println(String.format("got %d bytes", data.length));
-        ChannelHandler handler = (ChannelHandler) key.attachment();
-        handler.onData(channel, data);
+        ChannelContext channelContext = (ChannelContext) key.attachment();
+        channelContext.channelRead(data);
     }
 }
