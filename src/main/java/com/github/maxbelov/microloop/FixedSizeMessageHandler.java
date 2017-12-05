@@ -1,8 +1,8 @@
 package com.github.maxbelov.microloop;
 
-import java.util.stream.IntStream;
+import java.nio.channels.SocketChannel;
 
-public abstract class FixedSizeMessageHandler implements ChannelHandler {
+public abstract class FixedSizeMessageHandler extends ChannelHandler {
     private final int messageSize;
     private byte[] data;
     private int lastIndex = 0;
@@ -17,7 +17,7 @@ public abstract class FixedSizeMessageHandler implements ChannelHandler {
 
 
     @Override
-    public void onData(final byte[] dataChunk) {
+    public void onData(SocketChannel socketChannel, final byte[] dataChunk) {
         if (dataChunk == null) {
             throw new NullPointerException("Data chunk must not be null!");
         }
@@ -32,7 +32,7 @@ public abstract class FixedSizeMessageHandler implements ChannelHandler {
 
             final boolean messageComplete = lastIndex >= messageSize;
             if (messageComplete) {
-                handleMessage(data);
+                handleMessage(socketChannel, data);
                 data = new byte[messageSize];
                 lastIndex = 0;
             }
@@ -41,17 +41,5 @@ public abstract class FixedSizeMessageHandler implements ChannelHandler {
         }
     }
 
-    protected abstract void handleMessage(byte[] message);
-
-    public static void main(String[] args) {
-        FixedSizeMessageHandler h = new FixedSizeMessageHandler(4) {
-            @Override
-            protected void handleMessage(byte[] message) {
-                System.out.printf("Message: %s\n", new String(message));
-            }
-        };
-        byte[] bytes = "12345".getBytes();
-        IntStream.range(0, 4).forEach(i -> h.onData(bytes));
-    }
-
+    protected abstract void handleMessage(SocketChannel socketChannel, byte[] message);
 }

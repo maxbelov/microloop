@@ -57,7 +57,9 @@ public class LoopServer {
         SocketAddress socket = channel.getRemoteAddress();
         System.out.println("Connected to " + socket);
 
-        channel.register(selector, SelectionKey.OP_READ, handlerSupplier.get());
+        ChannelHandler channelHandler = handlerSupplier.get();
+        channelHandler.onActive(channel);
+        channel.register(selector, SelectionKey.OP_READ, channelHandler);
     }
 
 
@@ -82,6 +84,6 @@ public class LoopServer {
 
         System.out.println(String.format("got %d bytes", data.length));
         ChannelHandler handler = (ChannelHandler) key.attachment();
-        handler.onData(data);
+        handler.onData(channel, data);
     }
 }

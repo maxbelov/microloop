@@ -25,9 +25,22 @@ public class SocketClientExample {
             byte [] message = messages[i].getBytes();
             ByteBuffer buffer = ByteBuffer.wrap(message);
             client.write(buffer);
-            System.out.println(messages [i]);
+            System.out.println("Sent to server: " + messages[i]);
+            readResponse(client);
             Thread.sleep(5000);
         }
         client.close();
+    }
+
+    private void readResponse(SocketChannel channel) throws IOException {
+        ByteBuffer buffer = ByteBuffer.allocate(10);
+        while (buffer.position() < buffer.capacity()) {
+            int bytesRead = channel.read(buffer);
+            if (bytesRead == -1) {
+                throw new RuntimeException("Unexpected connection interrupt!");
+            }
+        }
+        System.out.printf("Client received: %s\n", new String(buffer.array()));
+
     }
 }

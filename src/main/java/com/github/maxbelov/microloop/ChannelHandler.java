@@ -1,5 +1,14 @@
 package com.github.maxbelov.microloop;
 
-public interface ChannelHandler {
-    void onData(byte[] dataChunk);
+import java.nio.channels.SocketChannel;
+
+public class ChannelHandler {
+    protected ChannelHandler() {
+    }
+
+    public void onActive(SocketChannel socketChannel) {
+    }
+
+    public void onData(SocketChannel socketChannel, byte[] dataChunk) {
+    }
 }
